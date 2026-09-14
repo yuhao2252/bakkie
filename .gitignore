@@ -5,3 +5,6 @@ node_modules/
 dist/
 build/
 .supabase/
+
+# Expo template example screens, kept locally for reference only
+mobile/example/
