@@ -2,13 +2,17 @@ import 'expo-sqlite/localStorage/install';
 import { createClient } from '@supabase/supabase-js';
 import { AppState } from 'react-native';
 
+import type { Database } from './database.types';
+
 // EXPO_PUBLIC_ values are compiled into the app bundle, so they must never be
 // secrets. The publishable key is safe to ship: it only identifies the project,
 // and row level security decides what each signed-in user can touch.
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
+// The Database type (generated from the schema) makes every query aware of
+// column names, types and nullability.
+export const supabase = createClient<Database>(supabaseUrl, supabasePublishableKey, {
   auth: {
     storage: localStorage,
     autoRefreshToken: true,

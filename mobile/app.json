@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "bakkie",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "icon": "./assets/expo.icon"
     },
@@ -33,7 +33,14 @@
           "imageWidth": 76
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Bakkie uses the camera to photograph coffee bags so it can read their labels.",
+          "photosPermission": "Bakkie reads the photos you choose to extract coffee details from bag labels."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
