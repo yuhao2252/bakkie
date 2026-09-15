@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Snapshot of the Bakkie database design, 2026-09-15 (migrations 20260914200000-200007). Update it when the schema changes. -->
+<title>Bakkie Schema</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground: #FAF7F2;
+    --surface: #FFFFFF;
+    --sunken: #F2ECE4;
+    --ink: #2A211C;
+    --muted: #7B6D63;
+    --rule: #E6DDD3;
+    --rule-strong: #CDBFB2;
+    --line: #8F7E71;
+    --accent: #6F4E37;
+    --accent-soft: #EFE3D8;
+    --plus: #2F6B3F;
+    --minus: #A0402C;
+    --bronze: #9C6436;
+    --silver: #858D94;
+    --gold: #B08A22;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #17120F;
+      --surface: #211A16;
+      --sunken: #1C1613;
+      --ink: #EDE4DB;
+      --muted: #A89787;
+      --rule: #372D26;
+      --rule-strong: #55473D;
+      --line: #9D8B7D;
+      --accent: #D8A983;
+      --accent-soft: #3A2B20;
+      --plus: #86C495;
+      --minus: #E4917B;
+      --bronze: #D09366;
+      --silver: #AEB5BB;
+      --gold: #D9B34E;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #17120F;
+    --surface: #211A16;
+    --sunken: #1C1613;
+    --ink: #EDE4DB;
+    --muted: #A89787;
+    --rule: #372D26;
+    --rule-strong: #55473D;
+    --line: #9D8B7D;
+    --accent: #D8A983;
+    --accent-soft: #3A2B20;
+    --plus: #86C495;
+    --minus: #E4917B;
+    --bronze: #D09366;
+    --silver: #AEB5BB;
+    --gold: #D9B34E;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font: 16px/1.55 var(--sans);
+    padding-inline: 20px;
+    padding-block: 44px 72px;
+  }
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 64px;
+  }
+  h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
+  p { margin: 0; }
+  code { font-family: var(--mono); font-size: 0.9em; }
+  a { color: var(--accent); }
+
+  /* Masthead */
+  .masthead { display: flex; flex-direction: column; gap: 14px; }
+  .eyebrow {
+    font: 500 12px var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    font: 600 clamp(2.2rem, 5vw, 3.2rem)/1.05 var(--cond);
+    letter-spacing: -0.01em;
+  }
+  .lede { max-width: 62ch; color: var(--muted); font-size: 1.05rem; }
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin: 6px 0 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+  }
+  .facts div { display: flex; align-items: baseline; gap: 8px; }
+  .facts dd {
+    margin: 0;
+    font: 500 1.25rem var(--mono);
+    font-variant-numeric: tabular-nums;
+    order: -1;
+  }
+  .facts dt { color: var(--muted); font-size: 0.9rem; }
+
+  /* Sections */
+  section { display: flex; flex-direction: column; gap: 20px; }
+  .section-head { display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+  h2 {
+    font: 600 1.7rem/1.15 var(--cond);
+    letter-spacing: -0.005em;
+  }
+  .section-head p { color: var(--muted); }
+
+  /* Diagrams */
+  figure { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+  .scroll { overflow-x: auto; border-block: 1px solid var(--rule); padding-block: 12px; }
+  .scroll svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  figcaption { color: var(--muted); font-size: 0.9rem; max-width: 75ch; }
+
+  .box rect { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1; }
+  .box.lookup rect { fill: var(--sunken); }
+  .box.core rect { stroke: var(--ink); stroke-width: 1.5; }
+  .box.imp rect { stroke: var(--accent); stroke-width: 1.5; }
+  .box.ext rect { fill: none; stroke: var(--line); stroke-dasharray: 4 3; }
+  .nm { font-family: var(--mono); font-size: 12.5px; font-weight: 500; fill: var(--ink); }
+  .sub { font-family: var(--sans); font-size: 11px; fill: var(--muted); }
+  .fk { stroke: var(--line); stroke-width: 1.25; fill: none; }
+  .fk-imp { stroke: var(--accent); stroke-width: 1.5; fill: none; stroke-dasharray: 6 4; }
+  .fk-file { stroke: var(--line); stroke-width: 1.25; fill: none; stroke-dasharray: 2 3; }
+  .lbl {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    fill: var(--muted);
+    paint-order: stroke;
+    stroke: var(--ground);
+    stroke-width: 4px;
+    stroke-linejoin: round;
+  }
+  .lbl.imp { fill: var(--accent); }
+  .mk { fill: var(--line); }
+  .mk-imp { fill: var(--accent); }
+
+  .state rect { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1.25; }
+  .state.final rect { stroke: var(--ink); stroke-width: 2.5; }
+  .state.good rect { fill: var(--accent-soft); stroke: var(--accent); }
+  .state text { font-family: var(--mono); font-size: 13px; font-weight: 500; fill: var(--ink); }
+  .start { fill: var(--ink); }
+
+  .legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    font-size: 0.88rem;
+    color: var(--muted);
+  }
+  .legend li { display: flex; align-items: center; gap: 8px; }
+  .legend svg { flex: none; }
+
+  /* Callout list */
+  .points {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+    gap: 16px 32px;
+  }
+  .points li { display: flex; flex-direction: column; gap: 4px; padding-top: 12px; border-top: 2px solid var(--ink); }
+  .points strong { font-weight: 600; }
+  .points span { color: var(--muted); font-size: 0.95rem; }
+
+  /* Table sheets */
+  .common {
+    background: var(--sunken);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 0.95rem;
+  }
+  .group { display: flex; flex-direction: column; gap: 14px; }
+  .group + .group { margin-top: 24px; }
+  .group-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+  h3 { font: 600 1.2rem var(--cond); }
+  .group-head p { color: var(--muted); font-size: 0.95rem; }
+  .sheets {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  .sheets.pair { grid-template-columns: repeat(auto-fill, minmax(min(440px, 100%), 1fr)); }
+  .sheet {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .sheet.gold { border-color: var(--rule-strong); }
+  .sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  h4 { font: 500 15px var(--mono); overflow-wrap: anywhere; }
+  .role {
+    flex: none;
+    font: 500 10.5px var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 3px 7px;
+    border-radius: 4px;
+  }
+  .sheet > p { color: var(--muted); font-size: 0.9rem; line-height: 1.45; }
+  .cols { list-style: none; margin: 0; padding: 0; }
+  .cols li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+    padding-block: 7px;
+    border-top: 1px solid var(--rule);
+  }
+  .cols code { font-size: 13px; overflow-wrap: anywhere; }
+  .cols .ty { font: 12px var(--mono); color: var(--muted); text-align: right; }
+  .cols .nt { grid-column: 1 / -1; font-size: 0.84rem; color: var(--muted); line-height: 1.4; }
+  .cols .pk code::before {
+    content: "PK";
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: var(--surface);
+    background: var(--ink);
+    border-radius: 3px;
+    padding: 1px 4px;
+    margin-right: 6px;
+    vertical-align: 1px;
+  }
+  .rule-note {
+    font-size: 0.84rem;
+    line-height: 1.4;
+    background: var(--sunken);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .rule-note b { font-weight: 600; }
+  .sub-table + .sub-table { padding-top: 10px; border-top: 1px dashed var(--rule-strong); }
+  .sub-table { display: flex; flex-direction: column; gap: 6px; }
+  .sub-table h5 { margin: 0; font: 500 13.5px var(--mono); }
+  .sub-table p { font-size: 0.84rem; color: var(--muted); line-height: 1.4; }
+
+  /* Ledger */
+  .split {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
+    gap: 24px 40px;
+    align-items: start;
+  }
+  .prose { display: flex; flex-direction: column; gap: 12px; max-width: 62ch; }
+  .table-scroll { overflow-x: auto; }
+  table.ledger {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+  }
+  .ledger caption { text-align: left; font: 500 12px var(--mono); color: var(--muted); padding-bottom: 8px; }
+  .ledger th, .ledger td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+  .ledger th { font: 500 11px var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+  .ledger td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .ledger .plus { color: var(--plus); }
+  .ledger .minus { color: var(--minus); }
+  .ledger td.by { color: var(--muted); white-space: normal; }
+  .ledger tfoot td { border-bottom: 0; font-weight: 600; }
+  .ledger code { font-size: 0.85rem; }
+
+  /* Medallion */
+  .layers {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+    gap: 16px;
+  }
+  .layers li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+  }
+  .layer-name { display: flex; align-items: center; gap: 8px; font: 600 1rem var(--cond); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .layers code { font-size: 12.5px; color: var(--accent); }
+  .layers p { font-size: 0.9rem; color: var(--muted); line-height: 1.45; }
+
+  /* Reference lists */
+  .ref {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+    gap: 32px 40px;
+    align-items: start;
+  }
+  .ref-block { display: flex; flex-direction: column; gap: 10px; }
+  .deflist { margin: 0; display: flex; flex-direction: column; }
+  .deflist > div { padding-block: 9px; border-top: 1px solid var(--rule); display: flex; flex-direction: column; gap: 3px; }
+  .deflist dt code { font-size: 13px; font-weight: 500; }
+  .deflist dt .when { font: 11.5px var(--mono); color: var(--muted); margin-left: 6px; }
+  .deflist dd { margin: 0; font-size: 0.9rem; color: var(--muted); line-height: 1.45; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font: 12px var(--mono);
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--rule-strong);
+    color: var(--ink);
+    background: var(--surface);
+  }
+
+  @media (max-width: 520px) {
+    body { padding-block: 28px 56px; }
+    .wrap { gap: 48px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">Supabase · PostgreSQL 17</p>
+    <h1>Bakkie Schema</h1>
+    <p class="lede">How Bakkie stores coffees, bags and stock, and how a web page or a photo of a label becomes a bag on your shelf. Every row belongs to exactly one user.</p>
+    <dl class="facts">
+      <div><dt>tables</dt><dd>15</dd></div>
+      <div><dt>views</dt><dd>4</dd></div>
+      <div><dt>enums</dt><dd>5</dd></div>
+      <div><dt>migrations</dt><dd>8</dd></div>
+      <div><dt>pgTAP tests</dt><dd>30</dd></div>
+    </dl>
+  </header>
+
+  <section aria-labelledby="map">
+    <div class="section-head">
+      <h2 id="map">The map</h2>
+      <p>Tables and the foreign keys between them. Catalog on the left, inventory in the middle, brewing on the right, the import pipeline underneath.</p>
+    </div>
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 1012 622" role="img" aria-label="Entity relationship diagram: coffees reference roasters and processes; coffee_varieties links coffees to varieties; bags reference coffees; brews reference bags and brew_methods; brew_ratings reference brews and rating_criteria; inventory_transactions reference bags and brews; photos reference coffees and bags; import_jobs reference the coffee and bag they create; import_job_photos reference import_jobs and files in the import-photos bucket; profiles reference auth.users.">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path class="mk" d="M0,0 L10,5 L0,10 z"/>
+            </marker>
+            <marker id="ah-imp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path class="mk-imp" d="M0,0 L10,5 L0,10 z"/>
+            </marker>
+          </defs>
+
+          <!-- relationships (drawn first so boxes sit on top) -->
+          <line class="fk" x1="284" y1="43" x2="211" y2="43" marker-end="url(#ah)"/>
+          <line class="fk" x1="284" y1="164" x2="211" y2="138" marker-end="url(#ah)"/>
+          <line class="fk" x1="284" y1="184" x2="211" y2="210" marker-end="url(#ah)"/>
+          <line class="fk" x1="190" y1="290" x2="302" y2="199" marker-end="url(#ah)"/>
+          <line class="fk" x1="116" y1="336" x2="116" y2="377" marker-end="url(#ah)"/>
+          <line class="fk" x1="544" y1="173" x2="471" y2="173" marker-end="url(#ah)"/>
+          <line class="fk" x1="804" y1="173" x2="731" y2="173" marker-end="url(#ah)"/>
+          <line class="fk" x1="636" y1="66" x2="636" y2="147" marker-end="url(#ah)"/>
+          <line class="fk" x1="544" y1="58" x2="453" y2="148" marker-end="url(#ah)"/>
+          <line class="fk" x1="896" y1="150" x2="896" y2="69" marker-end="url(#ah)"/>
+          <line class="fk" x1="896" y1="290" x2="896" y2="199" marker-end="url(#ah)"/>
+          <line class="fk" x1="896" y1="336" x2="896" y2="407" marker-end="url(#ah)"/>
+          <line class="fk" x1="636" y1="290" x2="636" y2="199" marker-end="url(#ah)"/>
+          <line class="fk" x1="728" y1="296" x2="811" y2="199" marker-end="url(#ah)"/>
+          <line class="fk" x1="376" y1="560" x2="376" y2="519" marker-end="url(#ah)"/>
+          <line class="fk-file" x1="284" y1="583" x2="211" y2="583" marker-end="url(#ah)"/>
+          <line class="fk-imp" x1="376" y1="470" x2="376" y2="199" marker-end="url(#ah-imp)"/>
+          <polyline class="fk-imp" points="468,493 506,493 506,240 590,240 590,199" marker-end="url(#ah-imp)"/>
+
+          <!-- relationship labels -->
+          <text class="lbl" x="247" y="37" text-anchor="middle">id</text>
+          <text class="lbl" x="247" y="146" text-anchor="middle">roaster_id</text>
+          <text class="lbl" x="247" y="213" text-anchor="middle">process_id</text>
+          <text class="lbl" x="262" y="262" text-anchor="middle">coffee_id</text>
+          <text class="lbl" x="126" y="361">variety_id</text>
+          <text class="lbl" x="507" y="166" text-anchor="middle">coffee_id</text>
+          <text class="lbl" x="767" y="166" text-anchor="middle">bag_id</text>
+          <text class="lbl" x="646" y="112">bag_id</text>
+          <text class="lbl" x="490" y="96" text-anchor="middle">coffee_id</text>
+          <text class="lbl" x="906" y="112">brew_method_id</text>
+          <text class="lbl" x="906" y="248">brew_id</text>
+          <text class="lbl" x="906" y="376">criterion_id</text>
+          <text class="lbl" x="646" y="248">bag_id</text>
+          <text class="lbl" x="776" y="254" text-anchor="middle">brew_id</text>
+          <text class="lbl" x="386" y="543">import_job_id</text>
+          <text class="lbl" x="247" y="576" text-anchor="middle">file</text>
+          <text class="lbl imp" x="386" y="340">created_coffee_id</text>
+          <text class="lbl imp" x="516" y="440">created_bag_id</text>
+
+          <!-- tables -->
+          <g class="box ext"><rect x="24" y="20" width="184" height="46" rx="6"/><text class="nm" x="36" y="40">auth.users</text><text class="sub" x="36" y="56">Supabase Auth</text></g>
+          <g class="box"><rect x="284" y="20" width="184" height="46" rx="6"/><text class="nm" x="296" y="40">profiles</text><text class="sub" x="296" y="56">name, default currency</text></g>
+          <g class="box"><rect x="544" y="20" width="184" height="46" rx="6"/><text class="nm" x="556" y="40">photos</text><text class="sub" x="556" y="56">pictures of a coffee or bag</text></g>
+          <g class="box lookup"><rect x="804" y="20" width="184" height="46" rx="6"/><text class="nm" x="816" y="40">brew_methods</text><text class="sub" x="816" y="56">V60, Espresso, Aeropress…</text></g>
+
+          <g class="box lookup"><rect x="24" y="110" width="184" height="46" rx="6"/><text class="nm" x="36" y="130">roasters</text><text class="sub" x="36" y="146">who roasted it</text></g>
+          <g class="box core"><rect x="284" y="150" width="184" height="46" rx="6"/><text class="nm" x="296" y="170">coffees</text><text class="sub" x="296" y="186">the product</text></g>
+          <g class="box core"><rect x="544" y="150" width="184" height="46" rx="6"/><text class="nm" x="556" y="170">bags</text><text class="sub" x="556" y="186">one purchase of a coffee</text></g>
+          <g class="box"><rect x="804" y="150" width="184" height="46" rx="6"/><text class="nm" x="816" y="170">brews</text><text class="sub" x="816" y="186">one cup · phase 2</text></g>
+          <g class="box lookup"><rect x="24" y="190" width="184" height="46" rx="6"/><text class="nm" x="36" y="210">processes</text><text class="sub" x="36" y="226">Washed, Natural, Honey…</text></g>
+
+          <g class="box"><rect x="24" y="290" width="184" height="46" rx="6"/><text class="nm" x="36" y="310">coffee_varieties</text><text class="sub" x="36" y="326">blend composition, %</text></g>
+          <g class="box"><rect x="544" y="290" width="184" height="46" rx="6"/><text class="nm" x="556" y="310">inventory_transactions</text><text class="sub" x="556" y="326">stock ledger, ± grams</text></g>
+          <g class="box"><rect x="804" y="290" width="184" height="46" rx="6"/><text class="nm" x="816" y="310">brew_ratings</text><text class="sub" x="816" y="326">score per criterion · phase 2</text></g>
+          <g class="box lookup"><rect x="24" y="380" width="184" height="46" rx="6"/><text class="nm" x="36" y="400">varieties</text><text class="sub" x="36" y="416">Geisha, SL28, Bourbon…</text></g>
+          <g class="box lookup"><rect x="804" y="410" width="184" height="46" rx="6"/><text class="nm" x="816" y="430">rating_criteria</text><text class="sub" x="816" y="446">Acidity, Body, Balance…</text></g>
+
+          <g class="box imp"><rect x="284" y="470" width="184" height="46" rx="6"/><text class="nm" x="296" y="490">import_jobs</text><text class="sub" x="296" y="506">one URL or photo import</text></g>
+          <g class="box imp"><rect x="284" y="560" width="184" height="46" rx="6"/><text class="nm" x="296" y="580">import_job_photos</text><text class="sub" x="296" y="596">one row per photo</text></g>
+          <g class="box ext"><rect x="24" y="560" width="184" height="46" rx="6"/><text class="nm" x="36" y="580">import-photos</text><text class="sub" x="36" y="596">Storage bucket (files)</text></g>
+        </svg>
+      </div>
+      <ul class="legend">
+        <li><svg width="34" height="10" aria-hidden="true"><line class="fk" x1="1" y1="5" x2="27" y2="5"/><path class="mk" d="M26,1 L33,5 L26,9 z"/></svg>foreign key, drawn from the table that holds the column</li>
+        <li><svg width="34" height="10" aria-hidden="true"><line class="fk-imp" x1="1" y1="5" x2="27" y2="5"/><path class="mk-imp" d="M26,1 L33,5 L26,9 z"/></svg>set when you confirm an import</li>
+        <li><svg width="22" height="14" aria-hidden="true"><g class="box lookup"><rect x="1" y="1" width="20" height="12" rx="3"/></g></svg>lookup table, editable per user</li>
+        <li><svg width="22" height="14" aria-hidden="true"><g class="box ext"><rect x="1" y="1" width="20" height="12" rx="3"/></g></svg>managed by Supabase, not our schema</li>
+      </ul>
+      <figcaption>Not drawn, to keep the map readable: every table also has <code>user_id → auth.users</code>. Deleting a user cascades through everything they own.</figcaption>
+    </figure>
+  </section>
+
+  <section aria-labelledby="security">
+    <div class="section-head">
+      <h2 id="security">Ownership and security</h2>
+      <p>The phone talks to Postgres directly through Supabase's API, so the database itself decides who sees what. There is no server of ours in between.</p>
+    </div>
+    <ul class="points">
+      <li><strong>Row level security on all 15 tables</strong><span>One policy shape everywhere: <code>user_id = auth.uid()</code> for reading (USING) and for writing (WITH CHECK), so a row can't be handed to someone else on update.</span></li>
+      <li><strong>Owner-scoped foreign keys</strong><span>Postgres checks foreign keys with RLS switched off. Children reference parents by <code>(id, user_id)</code>, so a bag can only point at a coffee with the same owner.</span></li>
+      <li><strong>Views run as the caller</strong><span>All four views use <code>security_invoker = on</code>; without it a view would quietly bypass RLS on the tables underneath.</span></li>
+      <li><strong>One folder per user in Storage</strong><span>Photos live at <code>&lt;user_id&gt;/&lt;import_id&gt;/&lt;n&gt;.jpg</code> in a private bucket (10 MB, JPEG/PNG/WebP). Storage policies only allow your own folder.</span></li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="tables">
+    <div class="section-head">
+      <h2 id="tables">Tables</h2>
+      <p>Columns that carry meaning, with their types and the rules the database enforces.</p>
+    </div>
+    <p class="common">Every table also has <code>id uuid</code> (primary key, except the two link tables), <code>user_id uuid → auth.users</code> and <code>created_at timestamptz</code>. Most have <code>updated_at</code>, kept current by a trigger. <code>profiles</code> is keyed by the auth user's own id and holds <code>display_name</code> and <code>default_currency</code> (default <code>EUR</code>).</p>
+
+    <div class="group">
+      <div class="group-head">
+        <h3>Catalog</h3>
+        <p>What a coffee is: facts that stay the same for every bag you buy.</p>
+      </div>
+      <div class="sheets">
+        <article class="sheet gold">
+          <div class="sheet-head"><h4>coffees</h4><span class="role">product</span></div>
+          <ul class="cols">
+            <li><code>name</code><span class="ty">text</span><span class="nt">Required, not blank</span></li>
+            <li><code>roaster_id</code><span class="ty">→ roasters</span><span class="nt">Empty when the roaster is unknown</span></li>
+            <li><code>country · region · producer</code><span class="ty">text</span><span class="nt">Origin; producer is the farm, co-op or washing station</span></li>
+            <li><code>altitude_masl</code><span class="ty">int</span><span class="nt">Metres above sea level, 0–4000</span></li>
+            <li><code>process_id</code><span class="ty">→ processes</span></li>
+            <li><code>roast_level</code><span class="ty">enum</span></li>
+            <li><code>tasting_notes</code><span class="ty">text[]</span><span class="nt">GIN index, so "every floral coffee" is an index lookup, not a text search</span></li>
+            <li><code>is_decaf</code><span class="ty">boolean</span></li>
+            <li><code>source_url</code><span class="ty">text</span><span class="nt">Where the record came from</span></li>
+            <li><code>attributes</code><span class="ty">jsonb</span><span class="nt">Facts without a column yet (harvest, lot…). Promote a key to a column once you query it often</span></li>
+          </ul>
+          <p class="rule-note"><b>Unique:</b> same user + roaster + name (ignoring case) is the same coffee. <code>NULLS NOT DISTINCT</code> makes two roaster-less coffees with one name collide too.</p>
+        </article>
+
+        <article class="sheet">
+          <div class="sheet-head"><h4>coffee_varieties</h4><span class="role">link table</span></div>
+          <p>Which cultivars are in a coffee. A single origin is one row; a blend is several.</p>
+          <ul class="cols">
+            <li class="pk"><code>coffee_id</code><span class="ty">→ coffees</span></li>
+            <li class="pk"><code>variety_id</code><span class="ty">→ varieties</span></li>
+            <li><code>percentage</code><span class="ty">numeric(5,2)</span><span class="nt">Empty when the bag doesn't give the split; otherwise above 0 and at most 100</span></li>
+          </ul>
+          <p class="rule-note"><b>Rule:</b> a coffee's percentages add up to at most 100%. This spans rows, so it's a constraint trigger, checked at the end of the transaction so a 70/30 split can be inserted as two rows.</p>
+        </article>
+
+        <article class="sheet">
+          <div class="sheet-head"><h4>roasters · processes · varieties</h4><span class="role">lookups</span></div>
+          <p>Lists you can extend. Names are unique per user, ignoring case, so "Onyx" and "onyx" are one roaster.</p>
+          <div class="sub-table">
+            <h5>roasters</h5>
+            <p><code>name</code>, <code>website</code>, <code>country</code>, <code>notes</code>. Created on first use when you confirm an import.</p>
+          </div>
+          <div class="sub-table">
+            <h5>processes</h5>
+            <p><code>name</code>, <code>sort_order</code>, <code>is_active</code>. Seeded at sign-up: Washed, Natural, Honey, Anaerobic, Carbonic Maceration.</p>
+          </div>
+          <div class="sub-table">
+            <h5>varieties</h5>
+            <p><code>name</code>, <code>notes</code>. Seeded with 11 cultivars, from Bourbon and Typica to SL28 and Ethiopian Heirloom.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-head">
+        <h3>Inventory</h3>
+        <p>What you have: purchases, and every gram in or out.</p>
+      </div>
+      <div class="sheets">
+        <article class="sheet gold">
+          <div class="sheet-head"><h4>bags</h4><span class="role">purchase</span></div>
+          <ul class="cols">
+            <li><code>coffee_id</code><span class="ty">→ coffees</span><span class="nt">Required</span></li>
+            <li><code>roast_date · purchased_at · opened_at</code><span class="ty">date</span><span class="nt">Opened can't be before roasted</span></li>
+            <li><code>initial_grams</code><span class="ty">numeric(8,2)</span><span class="nt">Label weight, above 0. Seeds the ledger; it is not the stock</span></li>
+            <li><code>price</code><span class="ty">numeric(10,2)</span><span class="nt">0 or more. Numeric, never float, for money</span></li>
+            <li><code>currency · vendor</code><span class="ty">text</span></li>
+            <li><code>degas_days_to_peak</code><span class="ty">int</span><span class="nt">0–90 days until the coffee is at its best</span></li>
+            <li><code>peak_window_days</code><span class="ty">int</span><span class="nt">How long it stays there; default 14</span></li>
+            <li><code>status</code><span class="ty">enum</span><span class="nt">Default <code>sealed</code></span></li>
+            <li><code>notes · attributes</code><span class="ty">text · jsonb</span></li>
+          </ul>
+        </article>
+
+        <article class="sheet">
+          <div class="sheet-head"><h4>inventory_transactions</h4><span class="role">ledger</span></div>
+          <p>Append-only. There is no "grams left" column anywhere: stock is the sum of this table.</p>
+          <ul class="cols">
+            <li><code>bag_id</code><span class="ty">→ bags</span><span class="nt">Required</span></li>
+            <li><code>brew_id</code><span class="ty">→ brews</span><span class="nt">Set only on brew rows; at most one row per brew</span></li>
+            <li><code>occurred_at</code><span class="ty">timestamptz</span></li>
+            <li><code>txn_type</code><span class="ty">enum</span></li>
+            <li><code>grams_delta</code><span class="ty">numeric(8,2)</span><span class="nt">Never 0</span></li>
+            <li><code>note</code><span class="ty">text</span></li>
+          </ul>
+          <p class="rule-note"><b>Rule:</b> the sign must match the type. A purchase adds, a brew, waste or gift removes, an adjustment can go either way.</p>
+        </article>
+
+        <article class="sheet">
+          <div class="sheet-head"><h4>photos</h4><span class="role">attachment</span></div>
+          <p>Pictures attached to a coffee or a bag. The file lives in Storage; the table holds the pointer. Not used by the app yet.</p>
+          <ul class="cols">
+            <li><code>coffee_id</code><span class="ty">→ coffees</span></li>
+            <li><code>bag_id</code><span class="ty">→ bags</span><span class="nt">At least one of the two is required</span></li>
+            <li><code>storage_path</code><span class="ty">text</span></li>
+            <li><code>caption</code><span class="ty">text</span></li>
+          </ul>
+        </article>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-head">
+        <h3>Brewing</h3>
+        <p>Phase 2. The schema is ready; the app has no screens for it yet.</p>
+      </div>
+      <div class="sheets">
+        <article class="sheet">
+          <div class="sheet-head"><h4>brews</h4><span class="role">event</span></div>
+          <p>One row per cup: the table that will grow fastest.</p>
+          <ul class="cols">
+            <li><code>bag_id</code><span class="ty">→ bags</span><span class="nt">Required</span></li>
+            <li><code>brew_method_id</code><span class="ty">→ brew_methods</span></li>
+            <li><code>brewed_at</code><span class="ty">timestamptz</span></li>
+            <li><code>dose_grams</code><span class="ty">numeric(6,2)</span><span class="nt">Coffee in, above 0. Taken off the bag's stock</span></li>
+            <li><code>yield_grams · water_grams</code><span class="ty">numeric</span><span class="nt">Liquid out (espresso) · water in (filter)</span></li>
+            <li><code>brew_time_seconds</code><span class="ty">int</span><span class="nt">1 second to 24 hours</span></li>
+            <li><code>water_temp_c</code><span class="ty">numeric(4,1)</span><span class="nt">0–100 °C</span></li>
+            <li><code>grind_setting</code><span class="ty">text</span><span class="nt">Text, because every grinder counts differently</span></li>
+          </ul>
+        </article>
+
+        <article class="sheet">
+          <div class="sheet-head"><h4>brew_ratings</h4><span class="role">long format</span></div>
+          <p>One row per brew per criterion instead of a column per criterion, so adding "Clarity" is an insert, not a migration.</p>
+          <ul class="cols">
+            <li class="pk"><code>brew_id</code><span class="ty">→ brews</span></li>
+            <li class="pk"><code>criterion_id</code><span class="ty">→ rating_criteria</span></li>
+            <li><code>score</code><span class="ty">numeric(4,1)</span></li>
+          </ul>
+        </article>
+
+        <article class="sheet">
+          <div class="sheet-head"><h4>brew_methods · rating_criteria</h4><span class="role">lookups</span></div>
+          <div class="sub-table">
+            <h5>brew_methods</h5>
+            <p><code>name</code>, <code>is_espresso</code>, <code>sort_order</code>, <code>is_active</code>. Seeded: Espresso, V60, Aeropress, French Press, Moka Pot, Chemex, Cold Brew.</p>
+          </div>
+          <div class="sub-table">
+            <h5>rating_criteria</h5>
+            <p><code>name</code>, <code>scale_min</code> (1), <code>scale_max</code> (10), <code>sort_order</code>, <code>is_active</code>. Seeded: Aroma, Acidity, Sweetness, Body, Balance, Aftertaste, Overall.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-head">
+        <h3>Import pipeline</h3>
+        <p>Where URL and photo imports wait, get read by Claude, and get reviewed.</p>
+      </div>
+      <div class="sheets pair">
+        <article class="sheet">
+          <div class="sheet-head"><h4>import_jobs</h4><span class="role">pipeline</span></div>
+          <ul class="cols">
+            <li><code>source</code><span class="ty">enum</span><span class="nt"><code>url</code>, <code>photo</code> or <code>manual</code></span></li>
+            <li><code>source_url</code><span class="ty">text</span><span class="nt">Required for URL imports</span></li>
+            <li><code>status</code><span class="ty">enum</span><span class="nt">Default <code>pending</code>; moves are enforced (see the lifecycle below)</span></li>
+            <li><code>raw_payload</code><span class="ty">jsonb</span><span class="nt">Bronze: what was fetched or read</span></li>
+            <li><code>extracted</code><span class="ty">jsonb</span><span class="nt">Silver: Claude's fields with confidence, plus lineage</span></li>
+            <li><code>confidence</code><span class="ty">numeric(3,2)</span><span class="nt">0–1, the average over fields that were found</span></li>
+            <li><code>error_message</code><span class="ty">text</span></li>
+            <li><code>created_coffee_id · created_bag_id</code><span class="ty">→ coffees · bags</span><span class="nt">Filled in by <code>confirm_import</code></span></li>
+            <li><code>processed_at</code><span class="ty">timestamptz</span></li>
+          </ul>
+          <p class="rule-note"><b>Live updates:</b> the table is published to Supabase Realtime, so the app hears when an import finishes.</p>
+        </article>
+
+        <article class="sheet">
+          <div class="sheet-head"><h4>import_job_photos</h4><span class="role">child</span></div>
+          <p>The photos of one import, usually the front and back of a bag.</p>
+          <ul class="cols">
+            <li><code>import_job_id</code><span class="ty">→ import_jobs</span></li>
+            <li><code>storage_path</code><span class="ty">text</span><span class="nt">Unique. Must start with the owner's own user id folder</span></li>
+            <li><code>position</code><span class="ty">smallint</span><span class="nt">0–9, unique within an import: the order Claude sees them in</span></li>
+          </ul>
+          <p class="rule-note"><b>Rule:</b> a photo import can't start extracting until it has at least one photo. The app writes the job before its photos, so this is checked on the status change, not on insert.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="stock">
+    <div class="section-head">
+      <h2 id="stock">How stock is counted</h2>
+      <p>Like an accounting ledger: movements are rows, and the balance is a sum.</p>
+    </div>
+    <div class="split">
+      <div class="prose">
+        <p>You never write stock yourself. Adding a bag makes a trigger write a <code>purchase</code> row for its label weight. Logging a brew writes a matching negative <code>brew</code> row, and editing or deleting the brew updates or removes that row, so the two can't drift apart.</p>
+        <p>Spills, dialing-in shots and coffee you give away are <code>waste</code> and <code>gift</code>. Weighing the bag and finding it differs is an <code>adjustment</code>.</p>
+        <p>Fixing a typo in a bag's weight rewrites its purchase row instead of adding a correction, because the typo was never a real-world event.</p>
+        <p>Keeping the history means questions like "how fast do I finish a bag?" can be answered later, and a half-failed write can't silently corrupt a stored balance.</p>
+      </div>
+      <div class="table-scroll">
+        <table class="ledger">
+          <caption>Example: one 250 g bag</caption>
+          <thead>
+            <tr><th>Date</th><th>txn_type</th><th>grams_delta</th><th>Written by</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1 Sep</td><td><code>purchase</code></td><td class="num plus">+250.00</td><td class="by">trigger, when the bag was added</td></tr>
+            <tr><td>3 Sep</td><td><code>brew</code></td><td class="num minus">−18.00</td><td class="by">trigger, when a brew was logged</td></tr>
+            <tr><td>4 Sep</td><td><code>waste</code></td><td class="num minus">−5.00</td><td class="by">you, after dialing in</td></tr>
+            <tr><td>4 Sep</td><td><code>brew</code></td><td class="num minus">−18.00</td><td class="by">trigger</td></tr>
+            <tr><td>10 Sep</td><td><code>adjustment</code></td><td class="num minus">−2.40</td><td class="by">you, after weighing the bag</td></tr>
+          </tbody>
+          <tfoot>
+            <tr><td colspan="2"><code>v_bag_stock</code></td><td class="num">206.60</td><td class="by">SUM(grams_delta)</td></tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="lifecycle">
+    <div class="section-head">
+      <h2 id="lifecycle">Import lifecycle</h2>
+      <p>An import is a small pipeline run. Its status can only move along these arrows; a trigger rejects anything else.</p>
+    </div>
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 910 272" role="img" aria-label="Import status state machine: pending moves to extracting when claimed, or to rejected. Extracting moves to extracted when Claude is done, or to failed on error. Failed can retry to extracting or be given up to rejected. Extracted can be re-run, discarded to rejected, or confirmed through confirm_import. Confirmed and rejected are final.">
+          <defs>
+            <marker id="sh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path class="mk" d="M0,0 L10,5 L0,10 z"/>
+            </marker>
+            <marker id="sh-imp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path class="mk-imp" d="M0,0 L10,5 L0,10 z"/>
+            </marker>
+          </defs>
+
+          <circle class="start" cx="16" cy="91" r="5"/>
+          <line class="fk" x1="21" y1="91" x2="42" y2="91" marker-end="url(#sh)"/>
+          <line class="fk" x1="180" y1="91" x2="272" y2="91" marker-end="url(#sh)"/>
+          <line class="fk" x1="410" y1="91" x2="502" y2="91" marker-end="url(#sh)"/>
+          <line class="fk-imp" x1="640" y1="91" x2="748" y2="91" marker-end="url(#sh-imp)"/>
+          <path class="fk" d="M 560 70 Q 457 18 356 70" marker-end="url(#sh)"/>
+          <line class="fk" x1="330" y1="112" x2="330" y2="188" marker-end="url(#sh)"/>
+          <line class="fk" x1="354" y1="190" x2="354" y2="114" marker-end="url(#sh)"/>
+          <line class="fk" x1="410" y1="211" x2="578" y2="211" marker-end="url(#sh)"/>
+          <line class="fk" x1="590" y1="112" x2="635" y2="188" marker-end="url(#sh)"/>
+          <polyline class="fk" points="112,112 112,252 648,252 648,235" marker-end="url(#sh)"/>
+
+          <text class="lbl" x="226" y="84" text-anchor="middle">claimed</text>
+          <text class="lbl" x="456" y="84" text-anchor="middle">Claude done</text>
+          <text class="lbl imp" x="694" y="84" text-anchor="middle">confirm_import()</text>
+          <text class="lbl" x="457" y="40" text-anchor="middle">re-run</text>
+          <text class="lbl" x="322" y="154" text-anchor="end">error</text>
+          <text class="lbl" x="362" y="154">retry</text>
+          <text class="lbl" x="494" y="204" text-anchor="middle">give up</text>
+          <text class="lbl" x="624" y="146">discard</text>
+          <text class="lbl" x="200" y="246" text-anchor="middle">discard</text>
+
+          <g class="state"><rect x="44" y="70" width="136" height="42" rx="21"/><text x="112" y="95" text-anchor="middle">pending</text></g>
+          <g class="state"><rect x="274" y="70" width="136" height="42" rx="21"/><text x="342" y="95" text-anchor="middle">extracting</text></g>
+          <g class="state"><rect x="504" y="70" width="136" height="42" rx="21"/><text x="572" y="95" text-anchor="middle">extracted</text></g>
+          <g class="state final good"><rect x="750" y="70" width="136" height="42" rx="21"/><text x="818" y="95" text-anchor="middle">confirmed</text></g>
+          <g class="state"><rect x="274" y="190" width="136" height="42" rx="21"/><text x="342" y="215" text-anchor="middle">failed</text></g>
+          <g class="state final"><rect x="580" y="190" width="136" height="42" rx="21"/><text x="648" y="215" text-anchor="middle">rejected</text></g>
+        </svg>
+      </div>
+      <figcaption>Heavy outlines are final states. <code>confirmed</code> can only be reached inside <code>confirm_import()</code>, which sets a flag that exists for the length of its own transaction; a plain update from the app is refused. A job stuck in <code>extracting</code> after a crash recovers through <code>failed</code>.</figcaption>
+    </figure>
+
+    <ul class="layers" aria-label="Medallion layers of an import">
+      <li>
+        <span class="layer-name"><span class="dot" style="background: var(--bronze)"></span>Bronze · raw</span>
+        <code>import_jobs.raw_payload</code>
+        <p>The page text, JSON-LD and meta tags as fetched, or the list of photos read. Kept so a better prompt can be re-run without fetching again.</p>
+      </li>
+      <li>
+        <span class="layer-name"><span class="dot" style="background: var(--silver)"></span>Silver · extracted</span>
+        <code>import_jobs.extracted</code>
+        <p>Every field as <code>{ value, confidence }</code>, plus warnings and lineage: schema and prompt version, model, token usage.</p>
+      </li>
+      <li>
+        <span class="layer-name"><span class="dot" style="background: var(--gold)"></span>Gold · confirmed</span>
+        <code>coffees + bags</code>
+        <p>Typed rows written by <code>confirm_import</code> after you review, in one transaction: roaster, coffee, varieties and bag, or nothing.</p>
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="reference">
+    <div class="section-head">
+      <h2 id="reference">Enums, views and functions</h2>
+      <p>The fixed vocabularies, the derived tables the app reads, and the logic that lives in the database.</p>
+    </div>
+    <div class="ref">
+      <div class="ref-block">
+        <h3>Enums</h3>
+        <p class="common">Fixed sets we control; adding a value takes a migration, on purpose.</p>
+        <dl class="deflist">
+          <div><dt><code>roast_level</code></dt><dd class="chips"><span class="chip">light</span><span class="chip">medium_light</span><span class="chip">medium</span><span class="chip">medium_dark</span><span class="chip">dark</span></dd></div>
+          <div><dt><code>bag_status</code></dt><dd class="chips"><span class="chip">sealed</span><span class="chip">open</span><span class="chip">finished</span><span class="chip">discarded</span></dd></div>
+          <div><dt><code>inventory_txn_type</code></dt><dd class="chips"><span class="chip">purchase +</span><span class="chip">brew −</span><span class="chip">waste −</span><span class="chip">gift −</span><span class="chip">adjustment ±</span></dd></div>
+          <div><dt><code>import_source</code></dt><dd class="chips"><span class="chip">url</span><span class="chip">photo</span><span class="chip">manual</span></dd></div>
+          <div><dt><code>import_status</code></dt><dd class="chips"><span class="chip">pending</span><span class="chip">extracting</span><span class="chip">extracted</span><span class="chip">failed</span><span class="chip">confirmed</span><span class="chip">rejected</span></dd></div>
+        </dl>
+
+        <h3>Views</h3>
+        <dl class="deflist">
+          <div><dt><code>v_bag_stock</code></dt><dd>Grams left per bag as <code>SUM(grams_delta)</code>, percent left, brew count, last brewed.</dd></div>
+          <div><dt><code>v_bag_freshness</code></dt><dd>Days since roast and where the bag sits on the curve: <code>unknown</code>, <code>degassing</code>, <code>peak</code> or <code>past_peak</code>.</dd></div>
+          <div><dt><code>v_coffee_varieties</code></dt><dd>One row per coffee: variety names, composition as JSON, and whether it's a blend.</dd></div>
+          <div><dt><code>v_bag_overview</code></dt><dd>The three views above joined with coffee and roaster: one row per bag for the Beans screen, plus price per gram.</dd></div>
+        </dl>
+      </div>
+
+      <div class="ref-block">
+        <h3>Functions and triggers</h3>
+        <dl class="deflist">
+          <div><dt><code>confirm_import(job, reviewed)</code><span class="when">called by the app</span></dt><dd>Finds or creates roaster, process and varieties, creates the coffee (or uses the one you picked) and the bag, and marks the import confirmed, all in one transaction. Runs with your permissions; anonymous callers can't execute it.</dd></div>
+          <div><dt><code>handle_new_user</code><span class="when">after sign-up</span></dt><dd>Creates your profile and seeds processes, varieties, brew methods and rating criteria.</dd></div>
+          <div><dt><code>sync_bag_purchase_txn</code><span class="when">bags insert / update</span></dt><dd>Writes or rewrites the opening purchase row in the ledger.</dd></div>
+          <div><dt><code>sync_brew_consumption_txn</code><span class="when">brews insert / update</span></dt><dd>Writes or updates the brew's negative ledger row.</dd></div>
+          <div><dt><code>check_variety_percentage_total</code><span class="when">end of transaction</span></dt><dd>Rejects blends over 100%.</dd></div>
+          <div><dt><code>enforce_import_status_transition</code><span class="when">import status change</span></dt><dd>Allows only the arrows in the lifecycle diagram.</dd></div>
+          <div><dt><code>check_import_job_ready</code><span class="when">import status change</span></dt><dd>Stops a photo import with no photos from starting.</dd></div>
+          <div><dt><code>set_updated_at</code><span class="when">before update</span></dt><dd>Keeps <code>updated_at</code> current.</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

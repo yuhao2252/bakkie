@@ -1,6 +1,8 @@
 # Bakkie — project notes
 
-Handoff notes for continuing work in a new session. Last updated: 2026-09-14.
+Handoff notes for continuing work in a new session. Last updated: 2026-09-15.
+
+Visual schema reference: open `docs/schema.html` in a browser (tables, relationships, stock ledger, import lifecycle).
 
 ## 1. What Bakkie is
 
@@ -28,7 +30,8 @@ technical choice and its trade-offs.
 | End-to-end import (URL or photo -> confirmed bag) | **Not yet tested** |
 | Photo retention job (delete after 30 days) | Not built |
 | Supabase cloud (prod) project | Not created |
-| Push to GitHub | Not done (see section 8) |
+| Push to GitHub | `develop` pushed; `main` not reconciled (see section 8) |
+| Schema documentation | `docs/schema.html` (snapshot as of migration `..._200007`) |
 
 ## 3. Next steps, in order
 
@@ -38,7 +41,7 @@ technical choice and its trade-offs.
 3. Open the app on the iPhone through Expo Go (section 7) and walk through sign-up, import, review and confirm.
 4. Type-check the edge function with Deno (not done yet).
 5. Build the 30-day photo retention job (a daily scheduled cleanup of photos from confirmed or rejected imports).
-6. Sort out the Git branches and push (section 8).
+6. Reconcile local `main` with GitHub's `main` (section 8).
 7. Later: create the Supabase cloud project (prod) and deploy migrations and the function.
 8. Phase 2: brew logging, ratings and freshness in the app (the schema already supports them).
 
@@ -146,6 +149,11 @@ Local background tasks need `[edge_runtime] policy = "per_worker"` in `config.to
 | `.env.local` (git-ignored) | `EXPO_PUBLIC_SUPABASE_URL=http://192.168.200.46:54321` (the Mac's Wi-Fi IP, so the phone can reach local Supabase) and the local publishable key. Update the IP if it changes. |
 | `example/` (git-ignored) | The Expo template's example screens, kept for reference. |
 
+### `docs/`
+| File | Contents |
+|---|---|
+| `schema.html` | Standalone page: relationship diagram, every table's columns and rules, stock ledger example, import status diagram, enums, views and functions. A snapshot — update it when migrations change the schema. Also published privately as the "Bakkie Schema" artifact on claude.ai. |
+
 `mobile/src/app/index.tsx` was deleted on purpose; the home screen is now `src/app/(app)/(tabs)/index.tsx`.
 `mobile/CLAUDE.md` / `AGENTS.md` come from the template: read the Expo v57 docs before writing Expo code.
 
@@ -183,9 +191,9 @@ cd mobile && npx tsc --noEmit       # type-check
 ## 8. Git and GitHub
 
 - Remote: `origin = https://github.com/yuhao2252/bakkie.git`.
-- Current branch **`develop`** at `89518f7`, **7 commits ahead of `origin/develop`** (not pushed).
+- Current branch **`develop`**, pushed and in sync with `origin/develop`.
 - Local `main` is at `c19bafc` (the initial schema commit). **`origin/main` is a different commit** (`0e70f99 "Initial commit"`, created on GitHub), so local and remote `main` have unrelated histories — decide how to reconcile before merging or pushing `main`.
-- Pushing needs authentication: run `gh auth login` in your own terminal. HTTPS pushes then use it.
+- HTTPS pushes authenticate through the macOS keychain. With git 2.31, a push over 1 MiB can fail with `RPC failed; HTTP 400`; fix it with `git config http.postBuffer 157286400` (or push once with `git -c http.postBuffer=157286400 push`).
 - Unresolved: `~/.ssh/known_hosts` has a GitHub host key that does not match what GitHub presents. Verify it against GitHub's published fingerprints before using SSH; it was deliberately not edited.
 
 ## 9. Known limitations and open questions
